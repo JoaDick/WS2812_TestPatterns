@@ -31,7 +31,7 @@ SOFTWARE.
 
 #include <FastLED.h>
 
-// Enable one of these according to your LED strip.
+// Enable one of these according to your LED strip - see also setup().
 #define LED_COLOR_ORDER     RGB
 //#define LED_COLOR_ORDER     RBG
 //#define LED_COLOR_ORDER     GRB
@@ -39,14 +39,14 @@ SOFTWARE.
 //#define LED_COLOR_ORDER     BRG
 //#define LED_COLOR_ORDER     BGR
 
-// Connect LED Strip to that pin.
+// Connect the LED Strip to that pin.
 #define LED_PIN 6
 
-// Connect pushbutton for selecting next pattern to that pin (and GND).
+// Connect a pushbutton for selecting the next pattern to that pin (and GND).
 #define PIN_BUTTON_NEXT_PATTERN 2
 
-// Connect pushbutton for selecting first pattern to that pin (and GND).
-#define PIN_BUTTON_RESET_PATTERN 3
+// Connect a pushbutton for selecting the first pattern to that pin (and GND).
+#define PIN_BUTTON_FIRST_PATTERN 3
 
 //------------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ bool lastButtonState = false;
 
 uint8_t patternIndex = 0;
 
-uint16_t animationLedIndex = 0;
+uint16_t animationCounter = 0;
 uint8_t animationColorIndex = 0;
 
 #define ARRAYLEN(x) (sizeof(x) / sizeof((x)[0]))
@@ -69,7 +69,7 @@ uint8_t animationColorIndex = 0;
 void setup()
 {
     pinMode(PIN_BUTTON_NEXT_PATTERN, INPUT_PULLUP);
-    pinMode(PIN_BUTTON_RESET_PATTERN, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_FIRST_PATTERN, INPUT_PULLUP);
 
     FastLED.addLeds<LED_TYPE, LED_PIN, LED_COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
@@ -90,16 +90,16 @@ void setup()
     FastLED.show();
 
     delay(5000);
-    resetSelectedPattern();
+    selectFirstPattern();
 }
 
 //------------------------------------------------------------------------------
 
 void loop()
 {
-    if (!digitalRead(PIN_BUTTON_RESET_PATTERN))
+    if (!digitalRead(PIN_BUTTON_FIRST_PATTERN))
     {
-        resetSelectedPattern();
+        selectFirstPattern();
     }
 
     const bool buttonState = !digitalRead(PIN_BUTTON_NEXT_PATTERN);
@@ -123,9 +123,10 @@ typedef void (*PatternFct)();
 
 const PatternFct patternFunctions[] =
     {
-        &displayAnimation,
         &displayRGB,
         &displayRuler,
+        &displayAnimation,
+        &displayRainbow,
 
         []() { displayColor(CRGB{0x40, 0x00, 0x00}); }, // red
         []() { displayColor(CRGB{0x40, 0x40, 0x00}); }, // yellow
@@ -150,18 +151,21 @@ const PatternFct patternFunctions[] =
 
 void selectNextPattern()
 {
+    animationCounter = 0;
+    animationColorIndex = 0;
+    FastLED.clear();
     if (patternFunctions[++patternIndex] == nullptr)
     {
-        resetSelectedPattern();
+        selectFirstPattern();
     }
 }
 
 //------------------------------------------------------------------------------
 
-void resetSelectedPattern()
+void selectFirstPattern()
 {
     patternIndex = 0;
-    animationLedIndex = 0;
+    animationCounter = 0;
     animationColorIndex = 0;
     FastLED.clear();
 }
@@ -225,11 +229,11 @@ void displayAnimation()
             CRGB{0x00, 0x00, 0x00}  // black
         };
 
-    leds[animationLedIndex] = colorTable[animationColorIndex];
+    leds[animationCounter] = colorTable[animationColorIndex];
 
-    if (++animationLedIndex >= NUM_LEDS)
+    if (++animationCounter >= NUM_LEDS)
     {
-        animationLedIndex = 0;
+        animationCounter = 0;
         if (++animationColorIndex >= ARRAYLEN(colorTable))
         {
             animationColorIndex = 0;
@@ -253,10 +257,25 @@ void displayRGB()
 
     for (uint16_t i = 0; i < NUM_LEDS; ++i)
     {
-        uint16_t colorIndex = (i / 5) % ARRAYLEN(colorTable);
+        const uint16_t colorIndex = (i / 5) % ARRAYLEN(colorTable);
         const CRGB color = colorTable[colorIndex];
-        leds[i] = color;
+        const uint16_t ledIndex = (i + animationCounter / 10) % NUM_LEDS;
+        leds[ledIndex] = color;
     }
+
+    if (++animationCounter >= NUM_LEDS * 10)
+    {
+        animationCounter = 0;
+    }
+}
+
+//------------------------------------------------------------------------------
+
+void displayRainbow()
+{
+    static uint8_t hue = 0;
+    fill_rainbow(leds, NUM_LEDS, hue, 5);
+    EVERY_N_MILLISECONDS(20) { hue++; }
 }
 
 //------------------------------------------------------------------------------
