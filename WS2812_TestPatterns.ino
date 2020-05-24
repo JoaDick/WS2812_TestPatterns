@@ -78,18 +78,29 @@ void setup()
     Serial.println(F("WS2812 Test Patterns"));
     Serial.println(F(""));
     Serial.println(F("Verify LED_COLOR_ORDER setting:"));
-    Serial.println(F("First  LED should be RED"));
-    Serial.println(F("Second LED should be GREEN"));
-    Serial.println(F("Third  LED should be BLUE"));
+    Serial.println(F("One LED should be RED"));
+    Serial.println(F("Two LEDs should be GREEN"));
+    Serial.println(F("Three LEDs should be BLUE"));
     Serial.println(F("If this is not the case, adjust LED_COLOR_ORDER according to the displayed colors."));
     Serial.println(F(""));
 
+    // Taken from the FastLED RGB-Calibrate example:
+    // You should see six leds on.  If the RGB ordering is correct, you should see 1 red led, 2 green
+    // leds, and 3 blue leds.  If you see different colors, the count of each color tells you what the
+    // position for that color in the rgb orering should be.  So, for example, if you see 1 Blue, and 2
+    // Red, and 3 Green leds then the rgb ordering should be BRG (Blue, Red, Green).
+    // You can then test this ordering by setting the RGB ordering in the #define LED_COLOR_ORDER ... line
+    // above to the new ordering and it should come out correctly, 1 red, 2 green, and 3 blue.
+    FastLED.clear();
     leds[0] = CRGB{0x20, 0, 0};
     leds[1] = CRGB{0, 0x20, 0};
-    leds[2] = CRGB{0, 0, 0x20};
+    leds[2] = CRGB{0, 0x20, 0};
+    leds[3] = CRGB{0, 0, 0x20};
+    leds[4] = CRGB{0, 0, 0x20};
+    leds[5] = CRGB{0, 0, 0x20};
     FastLED.show();
 
-    delay(5000);
+    delay(3000);
     selectFirstPattern();
 }
 
